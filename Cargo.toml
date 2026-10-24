@@ -8,3 +8,4 @@ description = "Charts six months of daily closing prices for a stock and highlig
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }
 clap = { version = "4.6.7", features = ["derive"] }
 yahoo_finance_api = { version = "5.0.0", features = ["blocking"] }
+plotters = "0.3.7"
