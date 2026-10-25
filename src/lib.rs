@@ -15,6 +15,18 @@ pub fn run(cli: &Cli) -> Result<(), AppError> {
     let days = fetch::fetch_quotes(&cli.ticker)?;
     let summary = analysis::summarize(&days).ok_or_else(|| AppError::NoData(cli.ticker.clone()))?;
 
+    // Print minimum closing price and its date
+    println!(
+        "Minimum closing price: {:.2} on {}",
+        summary.min.close, summary.min.date
+    );
+
+    // Print maximum closing price and its date
+    println!(
+        "Maximum closing price: {:.2} on {}",
+        summary.max.close, summary.max.date
+    );
+
     let output = cli.output_path();
     plot::draw_chart(&cli.ticker, &days, &summary, &output)?;
     open_file(&output);
