@@ -1,5 +1,4 @@
 use std::io::{self, Write};
-use std::path::Path;
 use std::process::ExitCode;
 
 use clap::Parser;
@@ -9,7 +8,7 @@ fn main() -> ExitCode {
     let cli = Cli::parse();
 
     if let Some(ticker) = cli.ticker.as_deref() {
-        try_run(ticker, cli.output.as_deref());
+        try_run(ticker);
     }
 
     loop {
@@ -37,14 +36,14 @@ fn main() -> ExitCode {
             }
         };
 
-        try_run(&ticker, None);
+        try_run(&ticker);
     }
 
     ExitCode::SUCCESS
 }
 
-fn try_run(ticker: &str, output: Option<&Path>) {
-    if let Err(error) = stock_monitor::run_for_ticker(ticker, output) {
+fn try_run(ticker: &str) {
+    if let Err(error) = stock_monitor::run_for_ticker(ticker) {
         eprintln!("error: {error}");
     }
 }

@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -17,9 +15,6 @@ use clap::Parser;
 pub struct Cli {
     #[arg(value_parser = parse_ticker)]
     pub ticker: Option<String>,
-
-    #[arg(short, long, value_name = "FILE")]
-    pub output: Option<PathBuf>,
 }
 
 pub fn parse_ticker(s: &str) -> Result<String, String> {
