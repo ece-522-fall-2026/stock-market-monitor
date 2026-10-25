@@ -36,16 +36,3 @@ Days with exactly 2% variation are not considered volatile. Only records with a 
 
 Volatile days are stored in `Summary.volatile` and passed to the plotting module to generate blue high-low-close error bars.
 
-### Algorithm Efficiency
-
-The `summarize()` function scans the records once, so its time complexity is **O(n)**, where `n` is the number of trading days. It uses **O(v)** additional space to store `v` volatile days.
-
-### Unit Testing
-
-Three unit tests verify:
-
-1. Identification of the minimum and maximum closing prices.
-2. Selection of days with volatility strictly greater than 2%, excluding exactly 2%.
-3. Returning `None` when the input is empty.
-
-All three analysis unit tests passed in the Task 3 development branch.
