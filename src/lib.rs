@@ -5,31 +5,21 @@ pub mod fetch;
 pub mod model;
 pub mod plot;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
-pub use cli::Cli;
+pub use cli::{parse_ticker, Cli};
 pub use error::AppError;
 
-pub fn run(cli: &Cli) -> Result<(), AppError> {
-    let days = fetch::fetch_quotes(&cli.ticker)?;
-    let summary = analysis::summarize(&days).ok_or_else(|| AppError::NoData(cli.ticker.clone()))?;
+pub fn run_for_ticker(ticker: &str, output: Option<&Path>) -> Result<(), AppError> {
+    let days = fetch::fetch_quotes(ticker)?;
+    let summary = analysis::summarize(&days).ok_or_else(|| AppError::NoData(ticker.to_string()))?;
 
-    // Print minimum closing price and its date
-    println!(
-        "Minimum closing price: {:.2} on {}",
-        summary.min.close, summary.min.date
-    );
-
-    // Print maximum closing price and its date
-    println!(
-        "Maximum closing price: {:.2} on {}",
-        summary.max.close, summary.max.date
-    );
-
-    let output = cli.output_path();
-    plot::draw_chart(&cli.ticker, &days, &summary, &output)?;
-    open_file(&output);
+    let output_path = output
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from(format!("{}_chart.png", ticker)));
+    plot::draw_chart(ticker, &days, &summary, &output_path)?;
+    open_file(&output_path);
     Ok(())
 }
 

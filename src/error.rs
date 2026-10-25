@@ -4,6 +4,7 @@ use std::fmt;
 pub enum AppError {
     Fetch(String),
     NoData(String),
+    TickerNotFound(String),
     Plot(String),
 }
 
@@ -12,6 +13,9 @@ impl fmt::Display for AppError {
         match self {
             Self::Fetch(reason) => write!(f, "failed to fetch quotes: {reason}"),
             Self::NoData(ticker) => write!(f, "no quote data available for {ticker}"),
+            Self::TickerNotFound(ticker) => {
+                write!(f, "ticker symbol not found: {ticker}")
+            }
             Self::Plot(reason) => write!(f, "failed to draw chart: {reason}"),
         }
     }

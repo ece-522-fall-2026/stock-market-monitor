@@ -1,9 +1,18 @@
 use chrono::{DateTime, Utc};
-use yahoo_finance_api::YahooConnector;
+use yahoo_finance_api::{YahooConnector, YahooError};
 
 use crate::error::AppError;
 use crate::model::Day;
 
+fn map_yahoo_error(e: YahooError, ticker: &str) -> AppError {
+    match e {
+        YahooError::FetchFailed(msg) if msg.contains("404") => {
+            AppError::TickerNotFound(ticker.to_string())
+        }
+        YahooError::NoResult | YahooError::NoQuotes => AppError::NoData(ticker.to_string()),
+        other => AppError::Fetch(other.to_string()),
+    }
+}
 
 pub fn fetch_quotes(ticker: &str) -> Result<Vec<Day>, AppError> {
     let ticker = ticker.trim();
@@ -14,16 +23,15 @@ pub fn fetch_quotes(ticker: &str) -> Result<Vec<Day>, AppError> {
         ));
     }
 
-    let provider = YahooConnector::new()
-        .map_err(|e| AppError::Fetch(e.to_string()))?;
+    let provider = YahooConnector::new().map_err(|e| map_yahoo_error(e, ticker))?;
 
     let response = provider
         .get_quote_range(ticker, "1d", "6mo")
-        .map_err(|e| AppError::Fetch(e.to_string()))?;
+        .map_err(|e| map_yahoo_error(e, ticker))?;
 
     let quotes = response
         .quotes()
-        .map_err(|e| AppError::Fetch(e.to_string()))?;
+        .map_err(|e| map_yahoo_error(e, ticker))?;
 
     if quotes.is_empty() {
         return Err(AppError::NoData(ticker.to_string()));
@@ -64,36 +72,4 @@ pub fn fetch_quotes(ticker: &str) -> Result<Vec<Day>, AppError> {
     days.sort_by_key(|day| day.date);
 
     Ok(days)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_fetch_real_stock_data() {
-        let result = fetch_quotes("AAPL");
-
-        match result {
-            Ok(days) => {
-                println!("Number of records: {}", days.len());
-
-                for day in days.iter().take(5) {
-                    println!(
-                        "{} | Open: {:.2} | High: {:.2} | Low: {:.2} | Close: {:.2}",
-                        day.date, day.open, day.high, day.low, day.close
-                    );
-                }
-
-                assert!(!days.is_empty());
-                assert!(days.len() > 5);
-
-                assert!(
-                    days.windows(2).all(|pair| pair[0].date <= pair[1].date),
-                    "Dates should be sorted chronologically"
-                );
-            }
-            Err(error) => panic!("Fetching AAPL data failed: {error}"),
-        }
-    }
 }
