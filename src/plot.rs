@@ -52,7 +52,7 @@ pub fn draw_chart(
         .configure_mesh()
         .x_desc("Date")
         .y_desc("Price")
-        .x_labels(6)
+        .x_labels(16)
         .x_label_formatter(&|x| {
             days.get(*x as usize)
                 .map(|day| day.date.to_string())
