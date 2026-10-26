@@ -37,33 +37,30 @@ pub fn fetch_quotes(ticker: &str) -> Result<Vec<Day>, AppError> {
         return Err(AppError::NoData(ticker.to_string()));
     }
 
-    let mut days = Vec::new();
+    let mut days: Vec<Day> = quotes
+        .iter()
+        .filter(|quote| {
+            quote.open.is_finite()
+                && quote.high.is_finite()
+                && quote.low.is_finite()
+                && quote.close.is_finite()
+                && quote.high >= quote.low
+                && quote.close > 0.0
+        })
+        .map(|quote| {
+            let date = DateTime::<Utc>::from_timestamp(quote.timestamp, 0)
+                .ok_or_else(|| AppError::Fetch("invalid quote timestamp".to_string()))?
+                .date_naive();
 
-    for quote in quotes {
-        if !quote.open.is_finite()
-            || !quote.high.is_finite()
-            || !quote.low.is_finite()
-            || !quote.close.is_finite()
-            || quote.high < quote.low
-            || quote.close <= 0.0
-        {
-            continue;
-        }
-
-        let date = DateTime::<Utc>::from_timestamp(quote.timestamp, 0)
-            .ok_or_else(|| {
-                AppError::Fetch("invalid quote timestamp".to_string())
-            })?
-            .date_naive();
-
-        days.push(Day {
-            date,
-            open: quote.open,
-            high: quote.high,
-            low: quote.low,
-            close: quote.close,
-        });
-    }
+            Ok(Day {
+                date,
+                open: quote.open,
+                high: quote.high,
+                low: quote.low,
+                close: quote.close,
+            })
+        })
+        .collect::<Result<Vec<Day>, AppError>>()?;
 
     if days.is_empty() {
         return Err(AppError::NoData(ticker.to_string()));
