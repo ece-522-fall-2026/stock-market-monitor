@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::path::Path;
 
 use plotters::prelude::*;
@@ -5,29 +6,27 @@ use plotters::prelude::*;
 use crate::error::AppError;
 use crate::model::{Day, Summary};
 
-// TODO(part 4): draw the chart with plotters and save it to `out`.
+fn plot_err(error: impl ToString) -> AppError {
+    AppError::Plot(error.to_string())
+}
+
+fn price_range(days: &[Day]) -> (f64, f64) {
+    let min_price = days.iter().map(|day| day.low).fold(f64::INFINITY, f64::min);
+    let max_price = days.iter().map(|day| day.high).fold(f64::NEG_INFINITY, f64::max);
+    (min_price, max_price)
+}
+
 pub fn draw_chart(
-    _ticker: &str,
-    _days: &[Day],
-    _summary: &Summary,
+    ticker: &str,
+    days: &[Day],
+    summary: &Summary,
     out: &Path,
 ) -> Result<(), AppError> {
-    if _days.len() == 0 {
+    if days.is_empty() {
         return Err(AppError::Plot("No data to plot".to_string()));
     }
 
-    let mut min_price = _days[0].low;
-    let mut max_price = _days[0].high;
-
-    for day in _days {
-        if day.low < min_price {
-            min_price = day.low;
-        }
-        if day.high > max_price {
-            max_price = day.high;
-        }
-    }
-
+    let (mut min_price, mut max_price) = price_range(days);
     let padding = (max_price - min_price) * 0.05;
 
     if min_price == max_price {
@@ -36,20 +35,18 @@ pub fn draw_chart(
     }
 
     let root = BitMapBackend::new(out, (1000, 600)).into_drawing_area();
-
-    root.fill(&WHITE)
-        .map_err(|e| AppError::Plot(e.to_string()))?;
+    root.fill(&WHITE).map_err(plot_err)?;
 
     let mut chart = ChartBuilder::on(&root)
-        .caption(format!("{} closing price", _ticker), ("sans-serif", 30))
+        .caption(format!("{} closing price", ticker), ("sans-serif", 30))
         .margin(15)
         .x_label_area_size(60)
         .y_label_area_size(60)
         .build_cartesian_2d(
-            0.._days.len() as i32,
+            0..days.len() as i32,
             (min_price - padding)..(max_price + padding),
         )
-        .map_err(|e| AppError::Plot(e.to_string()))?;
+        .map_err(plot_err)?;
 
     chart
         .configure_mesh()
@@ -57,52 +54,27 @@ pub fn draw_chart(
         .y_desc("Price")
         .x_labels(6)
         .x_label_formatter(&|x| {
-            if *x >= 0 && (*x as usize) < _days.len() {
-                _days[*x as usize].date.to_string()
-            } else {
-                String::new()
-            }
+            days.get(*x as usize)
+                .map(|day| day.date.to_string())
+                .unwrap_or_default()
         })
         .draw()
-        .map_err(|e| AppError::Plot(e.to_string()))?;
+        .map_err(plot_err)?;
 
-    let mut points = Vec::new();
+    let close_line = days
+        .iter()
+        .enumerate()
+        .map(|(index, day)| (index as i32, day.close));
+    chart.draw_series(LineSeries::new(close_line, &RED)).map_err(plot_err)?;
 
-    for i in 0.._days.len() {
-        let day = &_days[i];
-        points.push((i as i32, day.close));
-    }
+    let volatile_dates: HashSet<_> = summary.volatile.iter().map(|day| day.date).collect();
+    let error_bars = days.iter().enumerate().filter_map(|(index, day)| {
+        volatile_dates.contains(&day.date).then(|| {
+            ErrorBar::new_vertical(index as i32, day.low, day.close, day.high, BLUE, 8)
+        })
+    });
+    chart.draw_series(error_bars).map_err(plot_err)?;
 
-    chart
-        .draw_series(LineSeries::new(points, &RED))
-        .map_err(|e| AppError::Plot(e.to_string()))?;
-
-    for i in 0.._days.len() {
-        let day = &_days[i];
-        let mut volatile = false;
-
-        for v in &_summary.volatile {
-            if v.date == day.date {
-                volatile = true;
-            }
-        }
-
-        if volatile == true {
-            chart
-                .draw_series([ErrorBar::new_vertical(
-                    i as i32,
-                    day.low,
-                    day.close,
-                    day.high,
-                    BLUE,
-                    8,
-                )])
-                .map_err(|e| AppError::Plot(e.to_string()))?;
-        }
-    }
-
-    root.present()
-        .map_err(|e| AppError::Plot(e.to_string()))?;
-
+    root.present().map_err(plot_err)?;
     Ok(())
 }
