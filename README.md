@@ -1,38 +1,47 @@
 # stock-market-monitor
 
+Fetches six months of daily quotes for a ticker, prints min/max closing price and dates, and writes a PNG chart (volatile days highlighted).
+
+![AAPL chart](assets/example_chart.png)
+
+## Setup
+
+Install [Rust](https://www.rust-lang.org/tools/install), then from this directory:
+
+```bash
+cargo build --release
+```
+
+## Usage
+
+```bash
+cargo run --release -- AAPL
+./target/release/stock-monitor AAPL
+```
+
+With no ticker argument, the program prompts for symbols; press Enter on an empty line to quit. Bad tickers report an error and do not crash the program.
+
+- **Chart file:** `tmp/<TICKER>_chart.png`
+- **Help:** `cargo run --release -- --help`
+
+The chart opens in your default image viewer when possible.
+
 ## Crates
 
 | Crate | Why |
 |---|---|
 | `clap` | Command-line parsing and `--help` |
-| `chrono` | Dates for quotes and the chart's x-axis |
-| `yahoo_finance_api` (planned) | Download daily stock quotes |
-| `tokio` (planned) | Async runtime required by `yahoo_finance_api` |
-| `plotters` (planned) | Draw the chart and save it as a PNG |
-## Financial Analysis Algorithm
+| `chrono` | Dates on quotes and the x-axis |
+| `yahoo_finance_api` | Daily quotes from Yahoo Finance (blocking) |
+| `plotters` | Render and save the chart as PNG |
 
-The stock analysis is implemented in `src/analysis.rs` using the `summarize()` function. It processes the daily stock records retrieved over the last six months.
+## Financial analysis
 
-### Minimum and Maximum Closing Prices
+Logic lives in `src/analysis.rs` (`summarize`). Over the fetched window:
 
-The algorithm iterates through all trading days and compares their closing prices to identify the lowest and highest closing prices and their corresponding dates. These records are stored in `Summary.min` and `Summary.max`.
+- **Minimum / maximum:** trading days with the lowest and highest **closing** price (`Summary.min`, `Summary.max`), including dates.
+- **Volatile days:** intraday swing more than 2% of the close — `((high - low) / close) × 100 > 2`, only when `close > 0`. Stored in `Summary.volatile`.
 
-### Volatility Calculation
+## Charting
 
-The intraday volatility percentage is calculated using:
-
-**Volatility (%) = ((High - Low) / Close) × 100**
-
-Where:
-- `High` is the highest price during the trading day.
-- `Low` is the lowest price during the trading day.
-- `Close` is the closing price.
-
-A day is classified as volatile only when:
-
-`((High - Low) / Close) × 100 > 2`
-
-Days with exactly 2% variation are not considered volatile. Only records with a positive closing price are evaluated for volatility.
-
-Volatile days are stored in `Summary.volatile` and passed to the plotting module to generate blue high-low-close error bars.
-
+`src/plot.rs` uses plotters (1000×600 bitmap PNG): red line of daily closes; blue vertical error bars (low–close–high) on volatile days; title and Date/Price axis labels; y-axis scaled to min/max **close** with 5% padding.

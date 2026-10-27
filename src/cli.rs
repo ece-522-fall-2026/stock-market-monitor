@@ -4,13 +4,9 @@ use clap::Parser;
 #[command(
     name = "stock-monitor",
     version,
-    about,
-    long_about = "Charts the last six months of daily closing prices for a stock.\n\n\
-                  Days where the intraday range (high - low) exceeds 2% of the close are\n\
-                  marked as volatile. The minimum and maximum closing prices and their\n\
-                  dates are printed, and the chart is saved as a PNG image.\n\n\
-                  After each chart, you can enter another ticker; press Enter on an empty\n\
-                  line to quit."
+    about = "Six months of closing prices; chart saved under tmp/",
+    long_about = "Pass a ticker, or run with no args and type symbols interactively.\n\
+                  Chart: tmp/<TICKER>_chart.png. Empty line at the prompt to quit."
 )]
 pub struct Cli {
     #[arg(value_parser = parse_ticker)]

@@ -10,12 +10,6 @@ fn plot_err(error: impl ToString) -> AppError {
     AppError::Plot(error.to_string())
 }
 
-fn price_range(days: &[Day]) -> (f64, f64) {
-    let min_price = days.iter().map(|day| day.low).fold(f64::INFINITY, f64::min);
-    let max_price = days.iter().map(|day| day.high).fold(f64::NEG_INFINITY, f64::max);
-    (min_price, max_price)
-}
-
 pub fn draw_chart(
     ticker: &str,
     days: &[Day],
@@ -26,7 +20,8 @@ pub fn draw_chart(
         return Err(AppError::Plot("No data to plot".to_string()));
     }
 
-    let (mut min_price, mut max_price) = price_range(days);
+    let mut min_price = summary.min.close;
+    let mut max_price = summary.max.close;
     let padding = (max_price - min_price) * 0.05;
 
     if min_price == max_price {
