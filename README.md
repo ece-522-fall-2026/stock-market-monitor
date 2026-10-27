@@ -32,7 +32,7 @@ The chart opens in your default image viewer when possible.
 |---|---|
 | `clap` | Command-line parsing and `--help` |
 | `chrono` | Dates on quotes and the x-axis |
-| `yahoo_finance_api` | Daily quotes from Yahoo Finance (blocking) |
+| `yahoo_finance_api` | Daily quotes from Yahoo Finance |
 | `plotters` | Render and save the chart as PNG |
 
 ## Financial analysis
